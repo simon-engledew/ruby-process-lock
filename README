@@ -1,4 +1,4 @@
-Just a simple class to determine if another process has already locked a file on a unix filesystem.
+A simple class to determine if another process has control over a lock-file on a unix filesystem.
 
 Example:
 
@@ -21,6 +21,10 @@ p.owner?
 => false
 p.alive?
 => true
+
+example.tmp will contain the pid of the running process
+
+
 
 Copyright (c) 2008 Simon Engledew, released under the MIT license
 
