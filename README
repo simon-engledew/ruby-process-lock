@@ -1,0 +1,24 @@
+Just a simple class to determine if another process has already locked a file on a unix filesystem.
+
+Example:
+
+IRB 1>>
+p = ProcessLock.new('example.tmp')
+p.owner?
+=> false
+p.aquire!
+=> true
+p.owner?
+=> true
+
+IRB 2>>
+q = ProcessLock.new('example.tmp')
+p.owner?
+=> false
+p.aquire!
+=> false
+p.alive?
+=> true
+
+Copyright (c) 2008 Simon Engledew, released under the MIT license
+
