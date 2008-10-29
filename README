@@ -17,6 +17,8 @@ p.owner?
 => false
 p.aquire!
 => false
+p.owner?
+=> false
 p.alive?
 => true
 
