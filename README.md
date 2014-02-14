@@ -130,6 +130,6 @@ example.tmp will contain the pid of the running process
 ## License and contributions
 
 * Based on work Copyright (c) 2008 Simon Engledew, released under the MIT license.
-* Subsequent work by Ian Heggie: packaged into a gem, added tests and acquire method.
+* Subsequent work by Ian Heggie: packaged into a gem, added tests and acquire method, fixed acquire so it didn't overwrite locks by other processes.
 * See git log for other contributers
 
