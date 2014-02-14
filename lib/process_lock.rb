@@ -1,4 +1,5 @@
-require "process_lock/version"
+require 'process_lock/version'
+require 'fileutils'
 
 class ProcessLock
 
@@ -6,43 +7,45 @@ class ProcessLock
 
   class AlreadyLocked < StandardError
   end
-  
+
+  class NotLocked < StandardError
+  end
+
   def initialize(filename)
     @filename = filename
     FileUtils.touch(@filename)
   end
   
   def acquire!
-    unless acquire
-      raise AlreadyLocked.new("Unable to acquire lock")
+    result = acquired = acquire_without_block
+    if acquired and block_given?
+      begin
+        result = yield
+      ensure
+        release
+      end
     end
+    raise(AlreadyLocked.new('Unable to acquire lock')) unless acquired
+    result
   end
 
   def acquire
-    acquired = false
-    open_and_lock do |f|
-      acquired = owner? || ! alive?
-      if acquired
-        f.truncate(f.write(Process.pid))
+    result = acquire_without_block
+    if result and block_given?
+      begin
+        result = yield
+      ensure
+        release
       end
     end
-    if block_given?
-      if acquired
-        begin
-          Proc.new.call
-        ensure
-          release
-        end
-      end
-    else
-      acquired
-    end
+    result
   end
 
   def release!
     unless release
-      raise AlreadyLocked.new("Unable to release lock (probably did not own it)")
+      raise NotLocked.new('Unable to release lock (probably did not own it)')
     end
+    true
   end
 
   def release
@@ -50,7 +53,7 @@ class ProcessLock
     open_and_lock do |f|
       acquired = owner?
       if acquired
-        f.truncate(f.write(0))
+        f.truncate(f.write(''))
       end
     end
     acquired
@@ -74,9 +77,22 @@ class ProcessLock
   
   private
 
+  def acquire_without_block
+    result = false
+    open_and_lock do |f|
+      result = owner? || ! alive?
+      if result
+        f.rewind
+        f.truncate(f.write(Process.pid))
+      end
+    end
+    result
+  end
+
   def open_and_lock
     old_locked_file = @locked_file
     if @locked_file
+      @locked_file.rewind
       return yield @locked_file
     else
       File.open(@filename, 'r+') do |f|
