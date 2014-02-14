@@ -5,7 +5,10 @@
 
 file=${1:-/dev/null}
 secs=${2:-0}
-sleep ${secs} &
+(
+sleep ${secs} <&- >&- 2>&- &
 echo $! > "$file"
 echo "Background process: sleep $secs & echo $! > $file"
+) &
+wait
 exit 0
