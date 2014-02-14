@@ -58,21 +58,17 @@ describe 'ProcessLock' do
 
     it 'should not acquire a lock if some other process has the lock' do
       fn = 'tmp/example4.txt'
-      pid = fork do
-        p2 = ProcessLock.new(fn)
-        Signal.trap('HUP') { p2.release!; exit }
-        p2.acquire!
-        sleep(1000)
-        p2.release!
-      end
+      system('bash spec/other_process.sh "%s" 100' % fn)
       p = ProcessLock.new(fn)
-      100.times do |i|
-        break if p.read == pid
-        sleep(0.2)
+      200.times do |i|
+        break if p.read > 0
+        sleep(0.5)
         puts "waited #{i+1} times" if i > 2
       end
+      pid = p.read
+      puts "+ps -fp %d" % pid
+      system "ps -fp %d" % pid
       # other process should have acquired the lock
-      p.read.should == pid
       p.should_not be_owner
       p.should be_alive
       p.acquire.should be_false
@@ -87,28 +83,23 @@ describe 'ProcessLock' do
       did_something.should be_false
       p.should_not be_owner
       p.should be_alive
-      Process.kill('HUP', pid)
+      Process.kill(9, pid) if pid> 0
     end
 
     it 'should acquire a lock if an completed process has the lock' do
       fn = 'tmp/example5.txt'
-      pid = fork do
-        p2 = ProcessLock.new(fn)
-        p2.acquire!
-        exit
-      end
-      Process.waitpid(pid)
+      system('bash spec/other_process.sh "%s" 0' % fn)
       p = ProcessLock.new(fn)
-      my_pid = Process.pid
-      x = p.read
-      o = p.owner?
-      a = p.alive?
+      200.times do |i|
+        break if p.read > 0 && ! p.alive?
+        sleep(0.5)
+        puts "waited #{i+1} times" if i > 2
+      end
+
+      p = ProcessLock.new(fn)
       p.should_not be_owner
       p.should_not be_alive
       p.acquire.should be_true
-      x = p.read
-      o = p.owner?
-      a = p.alive?
       p.should be_owner
       p.should be_alive
       p.release
