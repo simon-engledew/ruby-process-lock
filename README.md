@@ -2,6 +2,8 @@
 
 A simple class to acquire and check process-id file based locks on a unix filesystem.
 
+[![Build Status](https://travis-ci.org/ianheggie/ruby-process-lock.png?branch=master)](https://travis-ci.org/ianheggie/ruby-process-lock)
+
 ## Installation
 
 Add this line to your application's Gemfile:
