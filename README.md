@@ -33,6 +33,7 @@ Methods:
 
 Note:
 * locks don't stack - if we have already acquired the lock subsequent calls will reacquire the lock. releasing an already released lock will fail.
+* If Rails.root is defined then lock files will be put in tmp/pids, and have .pid appended if no extension is specified
 
 To acquire a lock, do some work and then release it:
 

@@ -5,14 +5,14 @@ require 'fileutils'
 describe 'ProcessLock' do
 
   before(:all) do
-    FileUtils.mkdir_p('tmp')
-    FileUtils.rm_f Dir.glob('tmp/example*.tmp')
+    FileUtils.mkdir_p('tmp/pids')
+    FileUtils.rm_f Dir.glob('tmp/pids/example*.tmp')
   end
 
   describe '#acquire' do
 
     it 'should acquire a lock when called without a block' do
-      p = ProcessLock.new('tmp/example1.txt')
+      p = ProcessLock.new('tmp/pids/example1.txt')
       p.should_not be_owner
       p.acquire.should be_true
       p.should be_owner
@@ -23,7 +23,7 @@ describe 'ProcessLock' do
     end
 
     it 'should acquire a lock when called with a block and then release it' do
-      p = ProcessLock.new('tmp/example2.txt')
+      p = ProcessLock.new('tmp/pids/example2.txt')
       p.should_not be_owner
       did_something = false
       p.acquire do
@@ -47,7 +47,7 @@ describe 'ProcessLock' do
     end
 
     it 'should acquire a lock when called with a block containing a return and then release it' do
-      p = ProcessLock.new('tmp/example3.txt')
+      p = ProcessLock.new('tmp/pids/example3.txt')
       p.should_not be_owner
       acquire_and_then_return_block_value(p) do
         'value returned by block'
@@ -57,7 +57,7 @@ describe 'ProcessLock' do
     end
 
     it 'should not acquire a lock if some other process has the lock' do
-      fn = 'tmp/example4.txt'
+      fn = 'tmp/pids/example4.txt'
       system('bash spec/other_process.sh "%s" 100' % fn)
       p = ProcessLock.new(fn)
       200.times do |i|
@@ -87,7 +87,7 @@ describe 'ProcessLock' do
     end
 
     it 'should acquire a lock if an completed process has the lock' do
-      fn = 'tmp/example5.txt'
+      fn = 'tmp/pids/example5.txt'
       system('bash spec/other_process.sh "%s" 0' % fn)
       p = ProcessLock.new(fn)
       200.times do |i|
@@ -107,7 +107,7 @@ describe 'ProcessLock' do
 
     it 'should allow multiple sequential locked sections' do
       3.times do
-        p = ProcessLock.new('tmp/example6.txt')
+        p = ProcessLock.new('tmp/pids/example6.txt')
         p.should_not be_owner
         did_something = false
         p.acquire do
@@ -122,7 +122,7 @@ describe 'ProcessLock' do
     end
 
     it 'should allow multiple parallel but differently named locked sections' do
-      ps = 3.times.collect { |i| ProcessLock.new('tmp/example7-%d.txt' % i) }
+      ps = 3.times.collect { |i| ProcessLock.new('tmp/pids/example7-%d.txt' % i) }
       did_something = 0
       ps.each do |p|
         p.should_not be_owner
@@ -144,19 +144,19 @@ describe 'ProcessLock' do
   describe '#acquire!' do
 
     it 'should call acquire and expect true' do
-      p = ProcessLock.new('tmp/example8.txt')
+      p = ProcessLock.new('tmp/pids/example8.txt')
       p.stub(:acquire_without_block).and_return(true)
       p.acquire!.should be_true
     end
 
     it 'throw an error if acquire returns false' do
-      p = ProcessLock.new('tmp/example9.txt')
+      p = ProcessLock.new('tmp/pids/example9.txt')
       p.stub(:acquire_without_block).and_return(false)
       expect { p.acquire! }.to raise_error(ProcessLock::AlreadyLocked)
     end
 
     it 'should acquire a lock when called with a block and then release it' do
-      p = ProcessLock.new('tmp/example2.txt')
+      p = ProcessLock.new('tmp/pids/example2.txt')
       p.should_not be_owner
       did_something = false
       p.acquire! do
@@ -175,13 +175,13 @@ describe 'ProcessLock' do
   describe '#release!' do
 
     it 'should call release and expect true' do
-      p = ProcessLock.new('tmp/example10.txt')
+      p = ProcessLock.new('tmp/pids/example10.txt')
       p.stub(:release).and_return(true)
       p.release!.should be_true
     end
 
     it 'throw an error if release returns false' do
-      p = ProcessLock.new('tmp/example11.txt')
+      p = ProcessLock.new('tmp/pids/example11.txt')
       p.stub(:release).and_return(false)
       expect { p.release! }.to raise_error(ProcessLock::NotLocked)
     end
@@ -191,7 +191,7 @@ describe 'ProcessLock' do
   describe '#read' do
 
     it 'should return the current PID if the lock was acquired' do
-      p = ProcessLock.new('tmp/example12.txt')
+      p = ProcessLock.new('tmp/pids/example12.txt')
       p.acquire do
         p.read.should == Process.pid
         p.should be_alive
@@ -200,7 +200,7 @@ describe 'ProcessLock' do
     end
 
     it 'should return whatever number is in the file' do
-      p = ProcessLock.new('tmp/example13.txt')
+      p = ProcessLock.new('tmp/pids/example13.txt')
       File.open(p.filename, 'w') do |f|
         f.puts('314152653')
       end
@@ -211,15 +211,35 @@ describe 'ProcessLock' do
 
   describe '#filename' do
 
-    it 'should return the filename' do
-      fn = 'tmp/example14.txt'
+    class Rails
+      def self.root
+        '.'
+      end
+    end
+
+    it 'should return the path' do
+      fn = 'tmp/pids/example14'
       p = ProcessLock.new(fn)
       p.filename.should == fn
     end
+
+    it 'should return tmp/pids/exampleN.pid for a simple name if Rails.root is set' do
+      fn = 'example14b'
+      Rails.root.should == '.'
+      p = ProcessLock.new(fn)
+      p.filename.should == "./tmp/pids/%s.pid" % fn
+    end
+
+    it 'should return tmp/pids/NAME.ext for NAME.ext if Rails.root is set' do
+      fn = 'example14c.ext'
+      p = ProcessLock.new(fn)
+      p.filename.should == "./tmp/pids/%s" % fn
+    end
+
   end
 
   it 'should use a string for the current PID in filename' do
-    p = ProcessLock.new('tmp/example15.txt')
+    p = ProcessLock.new('tmp/pids/example15.txt')
     p.acquire do
       File.open(p.filename, 'r') do |f|
         contents = f.read

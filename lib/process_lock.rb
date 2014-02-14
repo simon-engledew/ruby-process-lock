@@ -13,6 +13,12 @@ class ProcessLock
 
   def initialize(filename)
     @filename = filename
+    if defined?(Rails) and Rails.root and (File.basename(filename) == @filename)
+      @filename = File.join(Rails.root, 'tmp', 'pids', filename)
+      unless filename =~ /\./
+        @filename << '.pid'
+      end
+    end
     FileUtils.touch(@filename)
   end
   

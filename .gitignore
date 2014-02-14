@@ -37,7 +37,7 @@ tmtags
 *~
 
 ## PROJECT::SPECIFIC
-tmp/example*
+tmp/pids/example*
 ,*
 
 # Local ruby version config
