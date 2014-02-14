@@ -1,30 +1,6 @@
-A simple class to determine if another process has control over a lock-file on a unix filesystem.
+A set of simple multiprocess concurrency examples originally designed to allow many worker processes to self organise and identify a leader process.
 
-Example:
+If you are looking for the process_lock gem, go here: https://github.com/ianheggie/ruby-process-lock/
 
-IRB 1>>
-p = ProcessLock.new('example.tmp')
-p.owner?
-=> false
-p.aquire!
-=> true
-p.owner?
-=> true
-
-IRB 2>>
-q = ProcessLock.new('example.tmp')
-p.owner?
-=> false
-p.aquire!
-=> false
-p.owner?
-=> false
-p.alive?
-=> true
-
-example.tmp will contain the pid of the running process
-
-
-
-Copyright (c) 2008 Simon Engledew, released under the MIT license
+Copyright (c) 2008-2014 Simon Engledew, released under the MIT license
 
