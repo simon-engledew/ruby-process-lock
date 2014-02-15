@@ -1,3 +1,5 @@
+require 'fileutils'
+
 class File
   # open a file with exclusive write permissions, blocking between processes
   # until the lock is released
